@@ -1,6 +1,7 @@
 const fs = require('fs');
 const path = require('path');
-const archiver = require('archiver');
+const archiverModule = require('archiver');
+const archiver = archiverModule.default || archiverModule;
 
 const root = path.resolve(__dirname, '..');
 const source = path.join(root, 'dist', 'LauncherHax-win32-x64');

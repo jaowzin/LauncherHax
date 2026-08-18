@@ -1,8 +1,9 @@
-const { app, BrowserWindow, ipcMain, shell } = require('electron');
+const { app, BrowserWindow, WebContentsView, ipcMain, shell } = require('electron');
 const path = require('path');
 const fs = require('fs');
 
 let mainWindow = null;
+let gameView = null;
 let gameContents = null;
 let replayingMacro = false;
 let configCache = null;
@@ -140,9 +141,27 @@ function attachGameWebContents(contents) {
   gameContents = contents;
 
   contents.setWindowOpenHandler(({ url }) => {
-    if (isAllowedGameUrl(url)) return { action: 'allow' };
+    if (isAllowedGameUrl(url)) {
+      return {
+        action: 'allow',
+        overrideBrowserWindowOptions: {
+          autoHideMenuBar: true,
+          backgroundColor: '#0b0d12',
+          webPreferences: {
+            nodeIntegration: false,
+            contextIsolation: true
+          }
+        }
+      };
+    }
     shell.openExternal(url).catch(() => {});
     return { action: 'deny' };
+  });
+
+  contents.on('will-navigate', (event, url) => {
+    if (isAllowedGameUrl(url)) return;
+    event.preventDefault();
+    shell.openExternal(url).catch(() => {});
   });
 
   contents.on('before-input-event', (event, input) => {
@@ -160,6 +179,50 @@ function attachGameWebContents(contents) {
   });
 }
 
+function createGameView() {
+  if (!mainWindow || gameView) return;
+
+  gameView = new WebContentsView({
+    webPreferences: {
+      partition: 'persist:haxball',
+      nodeIntegration: false,
+      contextIsolation: true
+    }
+  });
+
+  gameView.setBackgroundColor('#111111');
+  gameView.setVisible(false);
+  mainWindow.contentView.addChildView(gameView);
+  attachGameWebContents(gameView.webContents);
+
+  const url = loadConfig().settings.gameUrl || DEFAULT_CONFIG.settings.gameUrl;
+  gameView.webContents.loadURL(url).catch(console.error);
+}
+
+function applyGameViewState(payload = {}) {
+  if (!mainWindow || !gameView) return;
+
+  const visible = Boolean(payload.visible);
+  const bounds = payload.bounds || {};
+  const [contentWidth, contentHeight] = mainWindow.getContentSize();
+
+  const x = Math.max(0, Math.min(Math.round(Number(bounds.x) || 0), contentWidth));
+  const y = Math.max(0, Math.min(Math.round(Number(bounds.y) || 0), contentHeight));
+  const width = Math.max(0, Math.min(Math.round(Number(bounds.width) || 0), contentWidth - x));
+  const height = Math.max(0, Math.min(Math.round(Number(bounds.height) || 0), contentHeight - y));
+
+  if (width > 0 && height > 0) {
+    gameView.setBounds({ x, y, width, height });
+  }
+  gameView.setVisible(visible && width > 0 && height > 0);
+}
+
+function loadGameUrl(url) {
+  if (!gameView || !isAllowedGameUrl(url)) return false;
+  gameView.webContents.loadURL(url).catch(console.error);
+  return true;
+}
+
 function createWindow() {
   mainWindow = new BrowserWindow({
     width: 1280,
@@ -172,27 +235,26 @@ function createWindow() {
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
       contextIsolation: true,
-      nodeIntegration: false,
-      webviewTag: true
+      nodeIntegration: false
     }
-  });
-
-  mainWindow.webContents.on('will-attach-webview', (event, webPreferences, params) => {
-    if (!isAllowedGameUrl(params.src)) {
-      event.preventDefault();
-      return;
-    }
-    delete webPreferences.preload;
-    webPreferences.nodeIntegration = false;
-    webPreferences.contextIsolation = true;
-    webPreferences.sandbox = true;
-  });
-
-  mainWindow.webContents.on('did-attach-webview', (_event, contents) => {
-    attachGameWebContents(contents);
   });
 
   mainWindow.loadFile(path.join(__dirname, 'index.html'));
+  createGameView();
+
+  mainWindow.on('resize', () => {
+    if (!mainWindow || mainWindow.isDestroyed()) return;
+    mainWindow.webContents.send('game:request-layout');
+  });
+
+  mainWindow.on('closed', () => {
+    if (gameView && !gameView.webContents.isDestroyed()) {
+      gameView.webContents.close();
+    }
+    gameView = null;
+    gameContents = null;
+    mainWindow = null;
+  });
 }
 
 ipcMain.handle('config:get', () => loadConfig());
@@ -201,6 +263,11 @@ ipcMain.handle('app:version', () => app.getVersion());
 ipcMain.handle('external:open', (_event, url) => {
   if (typeof url === 'string' && /^https:\/\//i.test(url)) return shell.openExternal(url);
 });
+ipcMain.handle('game:view-state', (_event, payload) => applyGameViewState(payload));
+ipcMain.handle('game:reload', () => {
+  if (gameView && !gameView.webContents.isDestroyed()) gameView.webContents.reload();
+});
+ipcMain.handle('game:load', (_event, url) => loadGameUrl(url));
 
 app.whenReady().then(() => {
   createWindow();

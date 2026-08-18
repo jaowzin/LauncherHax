@@ -14,7 +14,7 @@
         <div class="logo">H</div>
         <div>
           <strong>LauncherHax</strong>
-          <span id="version">v0.1.0</span>
+          <span id="version">v0.1.1</span>
         </div>
       </div>
 
@@ -42,7 +42,9 @@
             <button id="homeGame" class="ghost-btn">Início</button>
           </div>
         </div>
-        <webview id="game" src="https://www.haxball.com/play" partition="persist:haxball" allowpopups></webview>
+        <div id="gameSurface" class="game-surface" aria-label="Área do HaxBall">
+          <div class="game-loading">Carregando HaxBall…</div>
+        </div>
       </section>
 
       <section id="view-macros" class="view padded-view">

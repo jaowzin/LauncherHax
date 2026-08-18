@@ -1,0 +1,132 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self'; script-src 'self'; img-src 'self' data:;" />
+  <title>LauncherHax</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <div class="app-shell">
+    <aside class="sidebar">
+      <div class="brand">
+        <div class="logo">H</div>
+        <div>
+          <strong>LauncherHax</strong>
+          <span id="version">v0.1.0</span>
+        </div>
+      </div>
+
+      <nav>
+        <button class="nav-btn active" data-view="game">▶ Jogar</button>
+        <button class="nav-btn" data-view="macros">⌨ Macros</button>
+        <button class="nav-btn" data-view="settings">⚙ Configurações</button>
+      </nav>
+
+      <div class="sidebar-footer">
+        <span class="status-dot"></span>
+        HaxBall oficial
+      </div>
+    </aside>
+
+    <main class="content">
+      <section id="view-game" class="view active game-view">
+        <div class="toolbar">
+          <div>
+            <strong>HaxBall</strong>
+            <small>Macros ativas funcionam enquanto o jogo está focado.</small>
+          </div>
+          <div class="toolbar-actions">
+            <button id="reloadGame" class="ghost-btn">Recarregar</button>
+            <button id="homeGame" class="ghost-btn">Início</button>
+          </div>
+        </div>
+        <webview id="game" src="https://www.haxball.com/play" partition="persist:haxball" allowpopups></webview>
+      </section>
+
+      <section id="view-macros" class="view padded-view">
+        <header class="page-header">
+          <div>
+            <h1>Macros</h1>
+            <p>Crie atalhos de teclado para remapear teclas, enviar mensagens ou executar sequências.</p>
+          </div>
+          <button id="newMacro" class="primary-btn">+ Nova macro</button>
+        </header>
+
+        <div id="macroEditor" class="editor-card hidden">
+          <div class="editor-head">
+            <h2 id="editorTitle">Nova macro</h2>
+            <button id="closeEditor" class="icon-btn">×</button>
+          </div>
+          <div class="form-grid">
+            <label>
+              Nome
+              <input id="macroName" type="text" placeholder="Ex.: Passe rápido" maxlength="40" />
+            </label>
+            <label>
+              Tecla de ativação
+              <button id="captureTrigger" class="capture-btn" type="button">Clique e pressione uma tecla</button>
+            </label>
+            <label>
+              Tipo
+              <select id="macroType">
+                <option value="remap">Remapear tecla</option>
+                <option value="chat">Mensagem no chat</option>
+                <option value="sequence">Sequência de teclas</option>
+              </select>
+            </label>
+            <label id="remapActionGroup">
+              Tecla de saída
+              <button id="captureAction" class="capture-btn" type="button">Clique e pressione a tecla de saída</button>
+            </label>
+            <label id="chatActionGroup" class="hidden span-2">
+              Mensagem
+              <input id="macroText" type="text" placeholder="Ex.: gg" maxlength="120" />
+            </label>
+            <label id="sequenceActionGroup" class="hidden span-2">
+              Sequência
+              <input id="macroSequence" type="text" placeholder="Ex.: KeyW, KeyD, Space" />
+              <small>Use códigos como KeyW, KeyA, KeyS, KeyD, Space e Enter.</small>
+            </label>
+            <label id="delayGroup" class="hidden">
+              Intervalo (ms)
+              <input id="macroDelay" type="number" value="35" min="0" max="2000" />
+            </label>
+          </div>
+          <div class="editor-actions">
+            <button id="cancelMacro" class="ghost-btn">Cancelar</button>
+            <button id="saveMacro" class="primary-btn">Salvar macro</button>
+          </div>
+        </div>
+
+        <div id="macroList" class="macro-list"></div>
+        <div id="emptyMacros" class="empty-state">
+          <div class="empty-icon">⌨</div>
+          <h2>Nenhuma macro criada</h2>
+          <p>Crie sua primeira macro e escolha uma tecla de ativação.</p>
+        </div>
+      </section>
+
+      <section id="view-settings" class="view padded-view">
+        <header class="page-header">
+          <div>
+            <h1>Configurações</h1>
+            <p>Opções gerais do launcher.</p>
+          </div>
+        </header>
+        <div class="settings-card">
+          <label>
+            URL do HaxBall
+            <input id="gameUrl" type="url" value="https://www.haxball.com/play" />
+          </label>
+          <button id="saveSettings" class="primary-btn">Salvar configurações</button>
+          <p class="hint">Por segurança, o launcher só incorpora páginas do domínio haxball.com.</p>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <script src="renderer.js"></script>
+</body>
+</html>

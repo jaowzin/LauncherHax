@@ -26,7 +26,10 @@ jobs:
         run: npm run package:win
 
       - name: Create ZIP
-        run: npm run zip:win
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force -Path release | Out-Null
+          Compress-Archive -Path dist/LauncherHax-win32-x64 -DestinationPath release/LauncherHax-win-x64.zip -Force
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4

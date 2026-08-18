@@ -8,11 +8,10 @@
   "scripts": {
     "start": "electron .",
     "package:win": "electron-packager . LauncherHax --platform=win32 --arch=x64 --out=dist --overwrite --asar --prune=true --ignore='^/dist$' --ignore='^/.git$'",
-    "zip:win": "node scripts/zip-win.js"
+    "zip:win": "powershell -NoProfile -Command \"New-Item -ItemType Directory -Force -Path release | Out-Null; Compress-Archive -Path dist/LauncherHax-win32-x64 -DestinationPath release/LauncherHax-win-x64.zip -Force\""
   },
   "devDependencies": {
     "@electron/packager": "latest",
-    "archiver": "latest",
     "electron": "latest"
   }
 }

@@ -27,11 +27,12 @@ nav { display: grid; gap: 6px; }
 .view { display: none; width: 100%; height: 100%; }
 .view.active { display: flex; }
 .game-view { flex-direction: column; }
-.toolbar { height: 62px; padding: 10px 16px; border-bottom: 1px solid #242833; background: #0f1218; display: flex; align-items: center; justify-content: space-between; }
+.toolbar { height: 62px; padding: 10px 16px; border-bottom: 1px solid #242833; background: #0f1218; display: flex; align-items: center; justify-content: space-between; flex: 0 0 auto; }
 .toolbar strong, .toolbar small { display: block; }
 .toolbar small { color: #858ea0; margin-top: 2px; font-size: 12px; }
 .toolbar-actions { display: flex; gap: 8px; }
-webview { flex: 1; width: 100%; background: #111; }
+.game-surface { flex: 1 1 auto; width: 100%; min-width: 0; min-height: 0; position: relative; overflow: hidden; background: #111; }
+.game-loading { position: absolute; inset: 0; display: grid; place-items: center; color: #687082; font-size: 13px; }
 
 .padded-view { overflow: auto; padding: 34px; flex-direction: column; }
 .page-header { display: flex; justify-content: space-between; align-items: flex-start; gap: 20px; margin-bottom: 24px; }

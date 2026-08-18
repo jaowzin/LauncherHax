@@ -3,7 +3,8 @@ const state = {
   editingId: null,
   trigger: null,
   actionCode: null,
-  captureMode: null
+  captureMode: null,
+  currentView: 'game'
 };
 
 const $ = (id) => document.getElementById(id);
@@ -33,9 +34,30 @@ async function persist() {
   state.config = await window.launcherAPI.saveConfig(state.config);
 }
 
+function getGameBounds() {
+  const surface = $('gameSurface');
+  const rect = surface.getBoundingClientRect();
+  return {
+    x: Math.round(rect.left),
+    y: Math.round(rect.top),
+    width: Math.round(rect.width),
+    height: Math.round(rect.height)
+  };
+}
+
+function syncGameView() {
+  if (!window.launcherAPI || !$('gameSurface')) return;
+  window.launcherAPI.setGameViewState({
+    visible: state.currentView === 'game',
+    bounds: getGameBounds()
+  }).catch(console.error);
+}
+
 function showView(name) {
+  state.currentView = name;
   document.querySelectorAll('.nav-btn').forEach(btn => btn.classList.toggle('active', btn.dataset.view === name));
   document.querySelectorAll('.view').forEach(view => view.classList.toggle('active', view.id === `view-${name}`));
+  requestAnimationFrame(syncGameView);
 }
 
 function updateTypeFields() {
@@ -206,9 +228,10 @@ function bindEvents() {
     state.captureMode = null;
   }, true);
 
-  const game = $('game');
-  $('reloadGame').addEventListener('click', () => game.reload());
-  $('homeGame').addEventListener('click', () => game.loadURL(state.config.settings.gameUrl || 'https://www.haxball.com/play'));
+  $('reloadGame').addEventListener('click', () => window.launcherAPI.reloadGame());
+  $('homeGame').addEventListener('click', () => {
+    window.launcherAPI.loadGame(state.config.settings.gameUrl || 'https://www.haxball.com/play');
+  });
 
   $('saveSettings').addEventListener('click', async () => {
     const value = $('gameUrl').value.trim();
@@ -217,7 +240,7 @@ function bindEvents() {
       if (!(url.hostname === 'haxball.com' || url.hostname.endsWith('.haxball.com'))) throw new Error('domain');
       state.config.settings.gameUrl = value;
       await persist();
-      game.loadURL(value);
+      await window.launcherAPI.loadGame(value);
       $('saveSettings').textContent = 'Salvo ✓';
       setTimeout(() => $('saveSettings').textContent = 'Salvar configurações', 1200);
     } catch {
@@ -225,15 +248,24 @@ function bindEvents() {
       setTimeout(() => $('gameUrl').classList.remove('invalid-input'), 900);
     }
   });
+
+  window.addEventListener('resize', () => requestAnimationFrame(syncGameView));
+
+  if ('ResizeObserver' in window) {
+    const observer = new ResizeObserver(() => requestAnimationFrame(syncGameView));
+    observer.observe($('gameSurface'));
+  }
+
+  window.launcherAPI.onGameLayoutRequest(() => requestAnimationFrame(syncGameView));
 }
 
 async function init() {
   state.config = await window.launcherAPI.getConfig();
   $('version').textContent = `v${await window.launcherAPI.getVersion()}`;
   $('gameUrl').value = state.config.settings.gameUrl || 'https://www.haxball.com/play';
-  $('game').src = $('gameUrl').value;
   bindEvents();
   renderMacros();
+  requestAnimationFrame(syncGameView);
 }
 
 init().catch(console.error);

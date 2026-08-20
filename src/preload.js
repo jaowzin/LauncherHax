@@ -3,6 +3,7 @@ const { contextBridge, ipcRenderer } = require('electron');
 contextBridge.exposeInMainWorld('launcherAPI', {
   getConfig: () => ipcRenderer.invoke('config:get'),
   saveConfig: (config) => ipcRenderer.invoke('config:save', config),
+  installPresetMacros: () => ipcRenderer.invoke('macros:install-presets'),
   getVersion: () => ipcRenderer.invoke('app:version'),
   openExternal: (url) => ipcRenderer.invoke('external:open', url),
   setGameViewState: (state) => ipcRenderer.invoke('game:view-state', state),

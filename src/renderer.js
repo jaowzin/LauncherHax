@@ -35,8 +35,7 @@ async function persist() {
 }
 
 function getGameBounds() {
-  const surface = $('gameSurface');
-  const rect = surface.getBoundingClientRect();
+  const rect = $('gameSurface').getBoundingClientRect();
   return {
     x: Math.round(rect.left),
     y: Math.round(rect.top),
@@ -60,12 +59,23 @@ function showView(name) {
   requestAnimationFrame(syncGameView);
 }
 
+function updateStats() {
+  const macros = state.config?.macros || [];
+  const active = macros.filter(item => item.enabled !== false).length;
+  $('macroCount').textContent = String(macros.length);
+  $('macroActiveCount').textContent = String(active);
+  $('sidebarMacroCount').textContent = String(macros.length);
+  $('gameActiveMacros').textContent = String(active);
+}
+
 function updateTypeFields() {
   const type = $('macroType').value;
+  const usesSequence = type === 'sequence' || type === 'toggleLoop';
   $('remapActionGroup').classList.toggle('hidden', type !== 'remap');
   $('chatActionGroup').classList.toggle('hidden', type !== 'chat');
-  $('sequenceActionGroup').classList.toggle('hidden', type !== 'sequence');
+  $('sequenceActionGroup').classList.toggle('hidden', !usesSequence);
   $('delayGroup').classList.toggle('hidden', type === 'remap');
+  if (type === 'toggleLoop' && Number($('macroDelay').value) < 10) $('macroDelay').value = '50';
 }
 
 function resetEditor() {
@@ -76,7 +86,7 @@ function resetEditor() {
   $('macroType').value = 'remap';
   $('macroText').value = '';
   $('macroSequence').value = '';
-  $('macroDelay').value = '35';
+  $('macroDelay').value = '50';
   $('captureTrigger').textContent = 'Clique e pressione uma tecla';
   $('captureAction').textContent = 'Clique e pressione a tecla de saída';
   $('editorTitle').textContent = 'Nova macro';
@@ -93,7 +103,7 @@ function openEditor(macro = null) {
     $('macroType').value = macro.type || 'remap';
     $('macroText').value = macro.text || '';
     $('macroSequence').value = Array.isArray(macro.sequence) ? macro.sequence.join(', ') : '';
-    $('macroDelay').value = String(macro.delay ?? 35);
+    $('macroDelay').value = String(macro.delay ?? 50);
     $('captureTrigger').textContent = keyLabel(macro.trigger);
     $('captureAction').textContent = macro.actionCode || 'Clique e pressione a tecla de saída';
     $('editorTitle').textContent = 'Editar macro';
@@ -111,8 +121,23 @@ function closeEditor() {
 
 function macroDescription(macro) {
   if (macro.type === 'chat') return `Chat: “${macro.text || ''}”`;
-  if (macro.type === 'sequence') return `Sequência: ${(macro.sequence || []).join(' → ')}`;
+  if (macro.type === 'toggleLoop') return `Loop: ${(macro.sequence || []).join(' → ')} · ${macro.delay || 50} ms · pressione novamente para parar`;
+  if (macro.type === 'sequence') return `Sequência: ${(macro.sequence || []).join(' → ')} · ${macro.delay || 35} ms`;
   return `Remapear para ${macro.actionCode || '?'}`;
+}
+
+function typeLabel(type) {
+  if (type === 'chat') return 'CHAT';
+  if (type === 'toggleLoop') return 'LOOP';
+  if (type === 'sequence') return 'SEQ';
+  return 'REMAP';
+}
+
+function typeSymbol(type) {
+  if (type === 'chat') return '✦';
+  if (type === 'toggleLoop') return '↻';
+  if (type === 'sequence') return '»';
+  return '⌨';
 }
 
 function renderMacros() {
@@ -126,20 +151,24 @@ function renderMacros() {
     row.className = 'macro-card';
     row.innerHTML = `
       <div class="macro-main">
-        <button class="toggle ${macro.enabled !== false ? 'on' : ''}" data-action="toggle" aria-label="Ativar/desativar"></button>
-        <div>
-          <div class="macro-title-line"><strong></strong><span class="key-pill"></span></div>
+        <div class="macro-symbol"></div>
+        <div class="macro-copy">
+          <div class="macro-title-line"><strong></strong><span class="key-pill"></span><span class="type-pill"></span></div>
           <p></p>
         </div>
       </div>
       <div class="macro-actions">
+        <button class="toggle ${macro.enabled !== false ? 'on' : ''}" data-action="toggle" aria-label="Ativar/desativar"></button>
         <button class="ghost-btn" data-action="edit">Editar</button>
         <button class="danger-btn" data-action="delete">Excluir</button>
       </div>
     `;
+    row.querySelector('.macro-symbol').textContent = typeSymbol(macro.type);
     row.querySelector('strong').textContent = macro.name || 'Macro';
     row.querySelector('.key-pill').textContent = keyLabel(macro.trigger);
+    row.querySelector('.type-pill').textContent = typeLabel(macro.type);
     row.querySelector('p').textContent = macroDescription(macro);
+
     row.querySelector('[data-action="toggle"]').addEventListener('click', async () => {
       macro.enabled = macro.enabled === false;
       await persist();
@@ -153,6 +182,7 @@ function renderMacros() {
     });
     list.appendChild(row);
   }
+  updateStats();
 }
 
 async function saveMacro() {
@@ -170,7 +200,7 @@ async function saveMacro() {
     enabled: true,
     trigger: state.trigger,
     type,
-    delay: Number($('macroDelay').value) || 35
+    delay: Math.max(type === 'toggleLoop' ? 10 : 0, Number($('macroDelay').value) || (type === 'toggleLoop' ? 50 : 35))
   };
 
   if (type === 'remap') {
@@ -183,7 +213,12 @@ async function saveMacro() {
   } else if (type === 'chat') {
     macro.text = $('macroText').value;
   } else {
-    macro.sequence = $('macroSequence').value.split(',').map(v => v.trim()).filter(Boolean).slice(0, 30);
+    macro.sequence = $('macroSequence').value.split(',').map(value => value.trim()).filter(Boolean).slice(0, 30);
+    if (!macro.sequence.length) {
+      $('macroSequence').classList.add('invalid-input');
+      setTimeout(() => $('macroSequence').classList.remove('invalid-input'), 900);
+      return;
+    }
   }
 
   const index = state.config.macros.findIndex(item => item.id === macro.id);
@@ -202,6 +237,19 @@ function bindEvents() {
   $('cancelMacro').addEventListener('click', closeEditor);
   $('saveMacro').addEventListener('click', saveMacro);
   $('macroType').addEventListener('change', updateTypeFields);
+
+  $('restorePresets').addEventListener('click', async () => {
+    const button = $('restorePresets');
+    button.disabled = true;
+    button.textContent = 'Restaurando…';
+    state.config = await window.launcherAPI.installPresetMacros();
+    renderMacros();
+    button.textContent = 'Pack restaurado ✓';
+    setTimeout(() => {
+      button.disabled = false;
+      button.textContent = 'Restaurar pack';
+    }, 1200);
+  });
 
   $('captureTrigger').addEventListener('click', () => {
     state.captureMode = 'trigger';
@@ -229,9 +277,7 @@ function bindEvents() {
   }, true);
 
   $('reloadGame').addEventListener('click', () => window.launcherAPI.reloadGame());
-  $('homeGame').addEventListener('click', () => {
-    window.launcherAPI.loadGame(state.config.settings.gameUrl || 'https://www.haxball.com/play');
-  });
+  $('homeGame').addEventListener('click', () => window.launcherAPI.loadGame(state.config.settings.gameUrl || 'https://www.haxball.com/play'));
 
   $('saveSettings').addEventListener('click', async () => {
     const value = $('gameUrl').value.trim();
@@ -250,12 +296,10 @@ function bindEvents() {
   });
 
   window.addEventListener('resize', () => requestAnimationFrame(syncGameView));
-
   if ('ResizeObserver' in window) {
     const observer = new ResizeObserver(() => requestAnimationFrame(syncGameView));
     observer.observe($('gameSurface'));
   }
-
   window.launcherAPI.onGameLayoutRequest(() => requestAnimationFrame(syncGameView));
 }
 

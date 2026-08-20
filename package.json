@@ -1,6 +1,6 @@
 {
   "name": "launcherhax",
-  "version": "0.1.1",
+  "version": "0.2.0",
   "description": "Desktop launcher for HaxBall with configurable local macros and keybinds.",
   "main": "src/main.js",
   "author": "jaowzin",

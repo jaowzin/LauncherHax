@@ -8,8 +8,87 @@ let gameContents = null;
 let replayingMacro = false;
 let configCache = null;
 
+const PRESET_PACK_VERSION = 1;
+const DEFAULT_MACROS = [
+  {
+    id: 'preset-chat-gg',
+    preset: true,
+    name: 'GG',
+    enabled: true,
+    trigger: { code: 'F1', ctrl: false, alt: false, shift: false, meta: false },
+    type: 'chat',
+    text: 'gg',
+    delay: 55
+  },
+  {
+    id: 'preset-chat-glhf',
+    preset: true,
+    name: 'GL HF',
+    enabled: true,
+    trigger: { code: 'F2', ctrl: false, alt: false, shift: false, meta: false },
+    type: 'chat',
+    text: 'gl hf',
+    delay: 55
+  },
+  {
+    id: 'preset-chat-boa',
+    preset: true,
+    name: 'Boa!',
+    enabled: true,
+    trigger: { code: 'F3', ctrl: false, alt: false, shift: false, meta: false },
+    type: 'chat',
+    text: 'boa!',
+    delay: 55
+  },
+  {
+    id: 'preset-chat-sorry',
+    preset: true,
+    name: 'Foi mal',
+    enabled: true,
+    trigger: { code: 'F4', ctrl: false, alt: false, shift: false, meta: false },
+    type: 'chat',
+    text: 'foi mal',
+    delay: 55
+  },
+  {
+    id: 'preset-chat-passa',
+    preset: true,
+    name: 'Passa!',
+    enabled: true,
+    trigger: { code: 'F5', ctrl: false, alt: false, shift: false, meta: false },
+    type: 'chat',
+    text: 'passa!',
+    delay: 55
+  },
+  {
+    id: 'preset-chat-gk',
+    preset: true,
+    name: 'Eu defendo',
+    enabled: true,
+    trigger: { code: 'F6', ctrl: false, alt: false, shift: false, meta: false },
+    type: 'chat',
+    text: 'eu defendo',
+    delay: 55
+  },
+  {
+    id: 'preset-remap-kick',
+    preset: true,
+    name: 'Kick alternativo',
+    enabled: true,
+    trigger: { code: 'CapsLock', ctrl: false, alt: false, shift: false, meta: false },
+    type: 'remap',
+    actionCode: 'Space',
+    delay: 35
+  }
+];
+
+function cloneDefaultMacros() {
+  return structuredClone(DEFAULT_MACROS);
+}
+
 const DEFAULT_CONFIG = {
-  macros: [],
+  macros: cloneDefaultMacros(),
+  presetPackVersion: PRESET_PACK_VERSION,
   settings: {
     gameUrl: 'https://www.haxball.com/play',
     launchOnStart: true
@@ -20,19 +99,33 @@ function configPath() {
   return path.join(app.getPath('userData'), 'launcherhax.json');
 }
 
+function persistConfigFile(config) {
+  fs.mkdirSync(path.dirname(configPath()), { recursive: true });
+  fs.writeFileSync(configPath(), JSON.stringify(config, null, 2), 'utf8');
+}
+
 function loadConfig() {
   if (configCache) return configCache;
   try {
     const raw = fs.readFileSync(configPath(), 'utf8');
     const parsed = JSON.parse(raw);
+    let macros = Array.isArray(parsed.macros) ? parsed.macros : [];
+    const oldPackVersion = Number(parsed.presetPackVersion || 0);
+    const shouldSeedPresets = oldPackVersion < PRESET_PACK_VERSION && macros.length === 0;
+    if (shouldSeedPresets) macros = cloneDefaultMacros();
+
     configCache = {
       ...DEFAULT_CONFIG,
       ...parsed,
+      presetPackVersion: PRESET_PACK_VERSION,
       settings: { ...DEFAULT_CONFIG.settings, ...(parsed.settings || {}) },
-      macros: Array.isArray(parsed.macros) ? parsed.macros : []
+      macros
     };
+
+    if (shouldSeedPresets) persistConfigFile(configCache);
   } catch {
     configCache = structuredClone(DEFAULT_CONFIG);
+    persistConfigFile(configCache);
   }
   return configCache;
 }
@@ -41,12 +134,19 @@ function saveConfig(nextConfig) {
   configCache = {
     ...DEFAULT_CONFIG,
     ...nextConfig,
+    presetPackVersion: PRESET_PACK_VERSION,
     settings: { ...DEFAULT_CONFIG.settings, ...(nextConfig.settings || {}) },
     macros: Array.isArray(nextConfig.macros) ? nextConfig.macros : []
   };
-  fs.mkdirSync(path.dirname(configPath()), { recursive: true });
-  fs.writeFileSync(configPath(), JSON.stringify(configCache, null, 2), 'utf8');
+  persistConfigFile(configCache);
   return configCache;
+}
+
+function installPresetMacros() {
+  const config = loadConfig();
+  const current = Array.isArray(config.macros) ? config.macros : [];
+  const custom = current.filter(item => !item.preset && !DEFAULT_MACROS.some(preset => preset.id === item.id));
+  return saveConfig({ ...config, macros: [...cloneDefaultMacros(), ...custom] });
 }
 
 function isAllowedGameUrl(url) {
@@ -84,7 +184,7 @@ function codeToKeyCode(code) {
   if (/^Digit[0-9]$/.test(code)) return code.slice(5);
   const map = {
     Space: 'Space', Enter: 'Enter', Escape: 'Escape', Tab: 'Tab', Backspace: 'Backspace',
-    ArrowUp: 'Up', ArrowDown: 'Down', ArrowLeft: 'Left', ArrowRight: 'Right',
+    CapsLock: 'CapsLock', ArrowUp: 'Up', ArrowDown: 'Down', ArrowLeft: 'Left', ArrowRight: 'Right',
     ShiftLeft: 'Shift', ShiftRight: 'Shift', ControlLeft: 'Control', ControlRight: 'Control',
     AltLeft: 'Alt', AltRight: 'Alt'
   };
@@ -146,11 +246,8 @@ function attachGameWebContents(contents) {
         action: 'allow',
         overrideBrowserWindowOptions: {
           autoHideMenuBar: true,
-          backgroundColor: '#0b0d12',
-          webPreferences: {
-            nodeIntegration: false,
-            contextIsolation: true
-          }
+          backgroundColor: '#080b12',
+          webPreferences: { nodeIntegration: false, contextIsolation: true }
         }
       };
     }
@@ -190,7 +287,7 @@ function createGameView() {
     }
   });
 
-  gameView.setBackgroundColor('#111111');
+  gameView.setBackgroundColor('#080b12');
   gameView.setVisible(false);
   mainWindow.contentView.addChildView(gameView);
   attachGameWebContents(gameView.webContents);
@@ -211,9 +308,7 @@ function applyGameViewState(payload = {}) {
   const width = Math.max(0, Math.min(Math.round(Number(bounds.width) || 0), contentWidth - x));
   const height = Math.max(0, Math.min(Math.round(Number(bounds.height) || 0), contentHeight - y));
 
-  if (width > 0 && height > 0) {
-    gameView.setBounds({ x, y, width, height });
-  }
+  if (width > 0 && height > 0) gameView.setBounds({ x, y, width, height });
   gameView.setVisible(visible && width > 0 && height > 0);
 }
 
@@ -225,11 +320,11 @@ function loadGameUrl(url) {
 
 function createWindow() {
   mainWindow = new BrowserWindow({
-    width: 1280,
-    height: 820,
-    minWidth: 940,
-    minHeight: 620,
-    backgroundColor: '#0b0d12',
+    width: 1380,
+    height: 860,
+    minWidth: 980,
+    minHeight: 660,
+    backgroundColor: '#080b12',
     title: 'LauncherHax',
     autoHideMenuBar: true,
     webPreferences: {
@@ -248,9 +343,7 @@ function createWindow() {
   });
 
   mainWindow.on('closed', () => {
-    if (gameView && !gameView.webContents.isDestroyed()) {
-      gameView.webContents.close();
-    }
+    if (gameView && !gameView.webContents.isDestroyed()) gameView.webContents.close();
     gameView = null;
     gameContents = null;
     mainWindow = null;
@@ -259,6 +352,7 @@ function createWindow() {
 
 ipcMain.handle('config:get', () => loadConfig());
 ipcMain.handle('config:save', (_event, config) => saveConfig(config));
+ipcMain.handle('macros:install-presets', () => installPresetMacros());
 ipcMain.handle('app:version', () => app.getVersion());
 ipcMain.handle('external:open', (_event, url) => {
   if (typeof url === 'string' && /^https:\/\//i.test(url)) return shell.openExternal(url);

@@ -8,57 +8,119 @@
   <link rel="stylesheet" href="styles.css" />
 </head>
 <body>
+  <div class="ambient ambient-one"></div>
+  <div class="ambient ambient-two"></div>
+
   <div class="app-shell">
     <aside class="sidebar">
       <div class="brand">
-        <div class="logo">H</div>
-        <div>
+        <div class="logo"><span>H</span></div>
+        <div class="brand-copy">
           <strong>LauncherHax</strong>
-          <span id="version">v0.1.1</span>
+          <span id="version">v0.2.0</span>
         </div>
       </div>
 
+      <div class="section-label">NAVEGAÇÃO</div>
       <nav>
-        <button class="nav-btn active" data-view="game">▶ Jogar</button>
-        <button class="nav-btn" data-view="macros">⌨ Macros</button>
-        <button class="nav-btn" data-view="settings">⚙ Configurações</button>
+        <button class="nav-btn active" data-view="game">
+          <span class="nav-icon">▶</span>
+          <span class="nav-copy"><strong>Jogar</strong><small>HaxBall oficial</small></span>
+        </button>
+        <button class="nav-btn" data-view="macros">
+          <span class="nav-icon">⌁</span>
+          <span class="nav-copy"><strong>Macros</strong><small>Atalhos e presets</small></span>
+          <span id="sidebarMacroCount" class="nav-badge">0</span>
+        </button>
+        <button class="nav-btn" data-view="settings">
+          <span class="nav-icon">⚙</span>
+          <span class="nav-copy"><strong>Configurações</strong><small>Launcher e jogo</small></span>
+        </button>
       </nav>
 
-      <div class="sidebar-footer">
-        <span class="status-dot"></span>
-        HaxBall oficial
+      <div class="sidebar-card">
+        <div class="sidebar-card-top">
+          <span class="status-dot"></span>
+          <span>Launcher pronto</span>
+        </div>
+        <strong>Macro Pack ativo</strong>
+        <small>F1–F6 + CapsLock configurados.</small>
       </div>
+
+      <div class="sidebar-footer">LauncherHax · Windows x64</div>
     </aside>
 
     <main class="content">
       <section id="view-game" class="view active game-view">
-        <div class="toolbar">
+        <header class="topbar">
           <div>
-            <strong>HaxBall</strong>
-            <small>Macros ativas funcionam enquanto o jogo está focado.</small>
+            <div class="eyebrow">PLAYGROUND</div>
+            <h1>HaxBall</h1>
           </div>
-          <div class="toolbar-actions">
-            <button id="reloadGame" class="ghost-btn">Recarregar</button>
-            <button id="homeGame" class="ghost-btn">Início</button>
+          <div class="topbar-actions">
+            <div class="live-pill"><span></span> jogo conectado</div>
+            <button id="reloadGame" class="ghost-btn">↻ Recarregar</button>
+            <button id="homeGame" class="primary-btn compact">⌂ Início</button>
           </div>
-        </div>
-        <div id="gameSurface" class="game-surface" aria-label="Área do HaxBall">
-          <div class="game-loading">Carregando HaxBall…</div>
+        </header>
+
+        <div class="game-frame">
+          <div class="game-frame-head">
+            <div class="window-dots"><span></span><span></span><span></span></div>
+            <div class="game-address">haxball.com/play</div>
+            <div class="macro-status"><span>⌁</span><b id="gameActiveMacros">0</b> macros ativas</div>
+          </div>
+          <div id="gameSurface" class="game-surface" aria-label="Área do HaxBall">
+            <div class="game-loading">
+              <div class="loader-ring"></div>
+              <strong>Preparando o HaxBall</strong>
+              <small>Carregando sessão persistente…</small>
+            </div>
+          </div>
         </div>
       </section>
 
       <section id="view-macros" class="view padded-view">
         <header class="page-header">
           <div>
-            <h1>Macros</h1>
-            <p>Crie atalhos de teclado para remapear teclas, enviar mensagens ou executar sequências.</p>
+            <div class="eyebrow">CONTROLES</div>
+            <h1>Macros & Atalhos</h1>
+            <p>Seu pack já vem configurado. Ative, edite ou crie novos atalhos.</p>
           </div>
-          <button id="newMacro" class="primary-btn">+ Nova macro</button>
+          <button id="newMacro" class="primary-btn">＋ Nova macro</button>
         </header>
+
+        <div class="stats-grid">
+          <article class="stat-card">
+            <span class="stat-icon">⌁</span>
+            <div><small>Total</small><strong id="macroCount">0</strong></div>
+          </article>
+          <article class="stat-card">
+            <span class="stat-icon success">●</span>
+            <div><small>Ativas</small><strong id="macroActiveCount">0</strong></div>
+          </article>
+          <article class="stat-card">
+            <span class="stat-icon">⚡</span>
+            <div><small>Preset pack</small><strong>7</strong></div>
+          </article>
+        </div>
+
+        <div class="preset-banner">
+          <div class="preset-mark">H</div>
+          <div class="preset-copy">
+            <span class="chip">MACRO PACK</span>
+            <h2>Atalhos prontos para jogar</h2>
+            <p>F1 GG · F2 GL HF · F3 Boa! · F4 Foi mal · F5 Passa! · F6 Eu defendo · CapsLock → Space</p>
+          </div>
+          <button id="restorePresets" class="ghost-btn">Restaurar pack</button>
+        </div>
 
         <div id="macroEditor" class="editor-card hidden">
           <div class="editor-head">
-            <h2 id="editorTitle">Nova macro</h2>
+            <div>
+              <span class="chip">EDITOR</span>
+              <h2 id="editorTitle">Nova macro</h2>
+            </div>
             <button id="closeEditor" class="icon-btn">×</button>
           </div>
           <div class="form-grid">
@@ -102,28 +164,44 @@
           </div>
         </div>
 
+        <div class="list-header">
+          <div><h2>Suas macros</h2><p>Funcionam quando o jogo está focado.</p></div>
+          <span class="chip subtle">LOCAL</span>
+        </div>
         <div id="macroList" class="macro-list"></div>
         <div id="emptyMacros" class="empty-state">
-          <div class="empty-icon">⌨</div>
-          <h2>Nenhuma macro criada</h2>
-          <p>Crie sua primeira macro e escolha uma tecla de ativação.</p>
+          <div class="empty-icon">⌁</div>
+          <h2>Nenhuma macro configurada</h2>
+          <p>Restaure o pack padrão ou crie a sua primeira macro.</p>
         </div>
       </section>
 
       <section id="view-settings" class="view padded-view">
         <header class="page-header">
           <div>
+            <div class="eyebrow">PREFERÊNCIAS</div>
             <h1>Configurações</h1>
-            <p>Opções gerais do launcher.</p>
+            <p>Ajustes simples do launcher e da página carregada.</p>
           </div>
         </header>
-        <div class="settings-card">
-          <label>
-            URL do HaxBall
-            <input id="gameUrl" type="url" value="https://www.haxball.com/play" />
-          </label>
-          <button id="saveSettings" class="primary-btn">Salvar configurações</button>
-          <p class="hint">Por segurança, o launcher só incorpora páginas do domínio haxball.com.</p>
+
+        <div class="settings-grid">
+          <article class="settings-card">
+            <div class="settings-title"><span class="settings-icon">◉</span><div><h2>HaxBall</h2><p>Página usada dentro do launcher.</p></div></div>
+            <label>
+              URL do jogo
+              <input id="gameUrl" type="url" value="https://www.haxball.com/play" />
+            </label>
+            <button id="saveSettings" class="primary-btn">Salvar configurações</button>
+            <p class="hint">Somente endereços do domínio haxball.com são aceitos.</p>
+          </article>
+
+          <article class="settings-card info-card">
+            <div class="settings-title"><span class="settings-icon">⌁</span><div><h2>Macros locais</h2><p>Executadas apenas enquanto o HaxBall está focado.</p></div></div>
+            <div class="info-row"><span>Preset pack</span><b>v1</b></div>
+            <div class="info-row"><span>Persistência</span><b>Ativa</b></div>
+            <div class="info-row"><span>Sessão HaxBall</span><b>Persistente</b></div>
+          </article>
         </div>
       </section>
     </main>
